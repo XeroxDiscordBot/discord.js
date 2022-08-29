@@ -40,6 +40,7 @@ class Intents extends BitField {}
  * * `DIRECT_MESSAGES`
  * * `DIRECT_MESSAGE_REACTIONS`
  * * `DIRECT_MESSAGE_TYPING`
+ * * `MESSAGE_CONTENT`
  * @type {Object}
  * @see {@link https://discord.com/developers/docs/topics/gateway#list-of-intents}
  */

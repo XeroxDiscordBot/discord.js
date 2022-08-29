@@ -4628,7 +4628,8 @@ export type IntentsString =
   | 'GUILD_MESSAGE_TYPING'
   | 'DIRECT_MESSAGES'
   | 'DIRECT_MESSAGE_REACTIONS'
-  | 'DIRECT_MESSAGE_TYPING';
+  | 'DIRECT_MESSAGE_TYPING'
+  | 'MESSAGE_CONTENT';
 
 export interface InviteGenerationOptions {
   permissions?: PermissionResolvable;
