@@ -2019,15 +2019,12 @@ export class ForumChannel extends TextBasedChannelMixin(GuildChannel, [
   'awaitMessages',
   'createMessageComponentCollector',
   'awaitMessageComponent',
-  'messages',
 ]) {
   public type: 'GUILD_FORUM';
   public threads: GuildForumThreadManager;
-  public availableTags: GuildForumTag[];
   public defaultReactionEmoji: DefaultReactionEmoji | null;
   public defaultThreadRateLimitPerUser: number | null;
   public rateLimitPerUser: number | null;
-  public defaultAutoArchiveDuration: ThreadAutoArchiveDuration | null;
   public nsfw: boolean;
   public topic: string | null;
 
