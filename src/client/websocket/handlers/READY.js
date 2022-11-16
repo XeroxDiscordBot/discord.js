@@ -1,13 +1,14 @@
 'use strict';
 
 const ClientApplication = require('../../../structures/ClientApplication');
+const Structures = require('../../../util/Structures');
 let ClientUser;
 
 module.exports = (client, { d: data }, shard) => {
   if (client.user) {
     client.user._patch(data.user);
   } else {
-    ClientUser ??= require('../../../structures/ClientUser');
+    ClientUser ??= Structures.get('ClientUser');
     client.user = new ClientUser(client, data.user);
     client.users.cache.set(client.user.id, client.user);
   }
