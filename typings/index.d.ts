@@ -2019,6 +2019,7 @@ export class ForumChannel extends TextBasedChannelMixin(GuildChannel, [
   'awaitMessages',
   'createMessageComponentCollector',
   'awaitMessageComponent',
+  'messages',
 ]) {
   // @ts-ignore
   public type: ChannelTypes.GUILD_FORUM;
