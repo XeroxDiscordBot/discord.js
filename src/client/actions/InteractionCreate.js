@@ -3,7 +3,7 @@
 const process = require('node:process');
 const Action = require('./Action');
 const { Events, InteractionTypes, MessageComponentTypes, ApplicationCommandTypes } = require('../../util/Constants');
-const Structures = require('../util/Structures');
+const Structures = require('../../util/Structures');
 
 let deprecationEmitted = false;
 
