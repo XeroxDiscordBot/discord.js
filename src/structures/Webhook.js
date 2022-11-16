@@ -1,5 +1,6 @@
 'use strict';
 
+const process = require('node:process');
 const MessagePayload = require('./MessagePayload');
 const { Error } = require('../errors');
 const { WebhookTypes } = require('../util/Constants');
@@ -115,6 +116,7 @@ class Webhook {
    * @property {string} [avatarURL] Avatar URL override for the message
    * @property {Snowflake} [threadId] The id of the thread in the channel to send to.
    * <info>For interaction webhooks, this property is ignored</info>
+   * @property {MessageFlags} [flags] Which flags to set for the message. Only `SUPPRESS_EMBEDS` can be set.
    */
 
   /**
@@ -379,7 +381,7 @@ class Webhook {
    * @readonly
    */
   get createdTimestamp() {
-    return SnowflakeUtil.deconstruct(this.id).timestamp;
+    return SnowflakeUtil.timestampFrom(this.id);
   }
 
   /**
@@ -415,7 +417,7 @@ class Webhook {
    * @returns {boolean}
    */
   isChannelFollower() {
-    return this.type === WebhookTypes['Channel Follower'];
+    return this.type === 'Channel Follower';
   }
 
   /**
@@ -423,7 +425,7 @@ class Webhook {
    * @returns {boolean}
    */
   isIncoming() {
-    return this.type === WebhookTypes.Incoming;
+    return this.type === 'Incoming';
   }
 
   static applyToClass(structure, ignore = []) {

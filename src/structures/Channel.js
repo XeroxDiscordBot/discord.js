@@ -1,8 +1,26 @@
 'use strict';
 
+const process = require('node:process');
 const Base = require('./Base');
+let CategoryChannel;
+let DMChannel;
+let NewsChannel;
+let StageChannel;
+let StoreChannel;
+let TextChannel;
+let ThreadChannel;
+let VoiceChannel;
+let DirectoryChannel;
 const { ChannelTypes, ThreadChannelTypes, VoiceBasedChannelTypes } = require('../util/Constants');
 const SnowflakeUtil = require('../util/SnowflakeUtil');
+
+/**
+ * @type {WeakSet<Channel>}
+ * @private
+ * @internal
+ */
+const deletedChannels = new WeakSet();
+let deprecationEmittedForDeleted = false;
 
 /**
  * Represents any channel on Discord.
@@ -19,12 +37,6 @@ class Channel extends Base {
      * @type {ChannelType}
      */
     this.type = type ?? 'UNKNOWN';
-
-    /**
-     * Whether the channel has been deleted
-     * @type {boolean}
-     */
-    this.deleted = false;
 
     if (data && immediatePatch) this._patch(data);
   }
@@ -43,7 +55,7 @@ class Channel extends Base {
    * @readonly
    */
   get createdTimestamp() {
-    return SnowflakeUtil.deconstruct(this.id).timestamp;
+    return SnowflakeUtil.timestampFrom(this.id);
   }
 
   /**
@@ -53,6 +65,36 @@ class Channel extends Base {
    */
   get createdAt() {
     return new Date(this.createdTimestamp);
+  }
+
+  /**
+   * Whether or not the structure has been deleted
+   * @type {boolean}
+   * @deprecated This will be removed in the next major version, see https://github.com/discordjs/discord.js/issues/7091
+   */
+  get deleted() {
+    if (!deprecationEmittedForDeleted) {
+      deprecationEmittedForDeleted = true;
+      process.emitWarning(
+        'Channel#deleted is deprecated, see https://github.com/discordjs/discord.js/issues/7091.',
+        'DeprecationWarning',
+      );
+    }
+
+    return deletedChannels.has(this);
+  }
+
+  set deleted(value) {
+    if (!deprecationEmittedForDeleted) {
+      deprecationEmittedForDeleted = true;
+      process.emitWarning(
+        'Channel#deleted is deprecated, see https://github.com/discordjs/discord.js/issues/7091.',
+        'DeprecationWarning',
+      );
+    }
+
+    if (value) deletedChannels.add(this);
+    else deletedChannels.delete(this);
   }
 
   /**
@@ -123,15 +165,31 @@ class Channel extends Base {
     return ThreadChannelTypes.includes(this.type);
   }
 
+  /**
+   * Indicates whether this channel is a {@link DirectoryChannel}
+   * @returns {boolean}
+   */
+  isDirectory() {
+    return this.type === 'GUILD_DIRECTORY';
+  }
+
   static create(client, data, guild, { allowUnknownGuild, fromInteraction } = {}) {
-    const Structures = require('../util/Structures');
+    CategoryChannel ??= require('./CategoryChannel');
+    DMChannel ??= require('./DMChannel');
+    NewsChannel ??= require('./NewsChannel');
+    StageChannel ??= require('./StageChannel');
+    StoreChannel ??= require('./StoreChannel');
+    TextChannel ??= require('./TextChannel');
+    ThreadChannel ??= require('./ThreadChannel');
+    VoiceChannel ??= require('./VoiceChannel');
+    DirectoryChannel ??= require('./DirectoryChannel');
+
     let channel;
     if (!data.guild_id && !guild) {
       if ((data.recipients && data.type !== ChannelTypes.GROUP_DM) || data.type === ChannelTypes.DM) {
-        const DMChannel = Structures.get('DMChannel');
         channel = new DMChannel(client, data);
       } else if (data.type === ChannelTypes.GROUP_DM) {
-        const PartialGroupDMChannel = Structures.get('PartialGroupDMChannel');
+        const PartialGroupDMChannel = require('./PartialGroupDMChannel');
         channel = new PartialGroupDMChannel(client, data);
       }
     } else {
@@ -140,38 +198,40 @@ class Channel extends Base {
       if (guild || allowUnknownGuild) {
         switch (data.type) {
           case ChannelTypes.GUILD_TEXT: {
-            const TextChannel = Structures.get('TextChannel');
             channel = new TextChannel(guild, data, client);
             break;
           }
           case ChannelTypes.GUILD_VOICE: {
-            const VoiceChannel = Structures.get('VoiceChannel');
             channel = new VoiceChannel(guild, data, client);
             break;
           }
           case ChannelTypes.GUILD_CATEGORY: {
-            const CategoryChannel = Structures.get('CategoryChannel');
             channel = new CategoryChannel(guild, data, client);
             break;
           }
           case ChannelTypes.GUILD_NEWS: {
-            const NewsChannel = Structures.get('NewsChannel');
             channel = new NewsChannel(guild, data, client);
             break;
           }
+          case ChannelTypes.GUILD_STORE: {
+            channel = new StoreChannel(guild, data, client);
+            break;
+          }
           case ChannelTypes.GUILD_STAGE_VOICE: {
-            const StageChannel = Structures.get('StageChannel');
             channel = new StageChannel(guild, data, client);
             break;
           }
           case ChannelTypes.GUILD_NEWS_THREAD:
           case ChannelTypes.GUILD_PUBLIC_THREAD:
           case ChannelTypes.GUILD_PRIVATE_THREAD: {
-            const ThreadChannel = Structures.get('ThreadChannel');
             channel = new ThreadChannel(guild, data, client, fromInteraction);
             if (!allowUnknownGuild) channel.parent?.threads.cache.set(channel.id, channel);
             break;
           }
+
+          case ChannelTypes.GUILD_DIRECTORY:
+            channel = new DirectoryChannel(client, data);
+            break;
         }
         if (channel && !allowUnknownGuild) guild.channels?.cache.set(channel.id, channel);
       }
@@ -184,7 +244,8 @@ class Channel extends Base {
   }
 }
 
-module.exports = Channel;
+exports.Channel = Channel;
+exports.deletedChannels = deletedChannels;
 
 /**
  * @external APIChannel

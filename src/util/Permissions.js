@@ -31,7 +31,7 @@ class Permissions extends BitField {
    * @returns {string[]}
    */
   missing(bits, checkAdmin = true) {
-    return checkAdmin && this.has(this.constructor.FLAGS.ADMINISTRATOR) ? [] : super.missing(bits, checkAdmin);
+    return checkAdmin && this.has(this.constructor.FLAGS.ADMINISTRATOR) ? [] : super.missing(bits);
   }
 
   /**
@@ -52,6 +52,14 @@ class Permissions extends BitField {
    */
   has(permission, checkAdmin = true) {
     return (checkAdmin && super.has(this.constructor.FLAGS.ADMINISTRATOR)) || super.has(permission);
+  }
+
+  /**
+   * Gets an {@link Array} of bitfield names based on the permissions available.
+   * @returns {string[]}
+   */
+  toArray() {
+    return super.toArray(false);
   }
 }
 
@@ -90,6 +98,7 @@ class Permissions extends BitField {
  * * `MANAGE_EMOJIS_AND_STICKERS`
  * * `USE_APPLICATION_COMMANDS`
  * * `REQUEST_TO_SPEAK`
+ * * `MANAGE_EVENTS`
  * * `MANAGE_THREADS`
  * * `USE_PUBLIC_THREADS` (deprecated)
  * * `CREATE_PUBLIC_THREADS`
@@ -136,6 +145,7 @@ Permissions.FLAGS = {
   MANAGE_EMOJIS_AND_STICKERS: 1n << 30n,
   USE_APPLICATION_COMMANDS: 1n << 31n,
   REQUEST_TO_SPEAK: 1n << 32n,
+  MANAGE_EVENTS: 1n << 33n,
   MANAGE_THREADS: 1n << 34n,
   // TODO: Remove deprecated USE_*_THREADS flags in v14
   USE_PUBLIC_THREADS: 1n << 35n,

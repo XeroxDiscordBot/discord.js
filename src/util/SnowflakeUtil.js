@@ -16,7 +16,7 @@ class SnowflakeUtil extends null {
    * ```
    * 64                                          22     17     12          0
    *  000000111011000111100001101001000101000000  00001  00000  000000000000
-   *       number of ms since Discord epoch       worker  pid    increment
+   *  number of milliseconds since Discord epoch  worker  pid    increment
    * ```
    * @typedef {string} Snowflake
    */
@@ -68,6 +68,15 @@ class SnowflakeUtil extends null {
       increment: Number(bigIntSnowflake & 0b111111111111n),
       binary: bigIntSnowflake.toString(2).padStart(64, '0'),
     };
+  }
+
+  /**
+   * Retrieves the timestamp field's value from a Discord snowflake.
+   * @param {Snowflake} snowflake Snowflake to get the timestamp value from
+   * @returns {number}
+   */
+  static timestampFrom(snowflake) {
+    return Number(BigInt(snowflake) >> 22n) + EPOCH;
   }
 
   /**

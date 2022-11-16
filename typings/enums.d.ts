@@ -27,6 +27,7 @@ export const enum ApplicationCommandOptionTypes {
   ROLE = 8,
   MENTIONABLE = 9,
   NUMBER = 10,
+  ATTACHMENT = 11,
 }
 
 export const enum ApplicationCommandPermissionTypes {
@@ -41,11 +42,13 @@ export const enum ChannelTypes {
   GROUP_DM = 3,
   GUILD_CATEGORY = 4,
   GUILD_NEWS = 5,
+  GUILD_STORE = 6,
   UNKNOWN = 7,
   GUILD_NEWS_THREAD = 10,
   GUILD_PUBLIC_THREAD = 11,
   GUILD_PRIVATE_THREAD = 12,
   GUILD_STAGE_VOICE = 13,
+  GUILD_DIRECTORY = 14,
 }
 
 export const enum MessageTypes {
@@ -72,7 +75,6 @@ export const enum MessageTypes {
   THREAD_STARTER_MESSAGE,
   GUILD_INVITE_REMINDER,
   CONTEXT_MENU_COMMAND,
-  AUTO_MODERATION_ACTION,
 }
 
 export const enum DefaultMessageNotificationLevels {
@@ -84,6 +86,23 @@ export const enum ExplicitContentFilterLevels {
   DISABLED = 0,
   MEMBERS_WITHOUT_ROLES = 1,
   ALL_MEMBERS = 2,
+}
+
+export const enum GuildScheduledEventEntityTypes {
+  STAGE_INSTANCE = 1,
+  VOICE = 2,
+  EXTERNAL = 3,
+}
+
+export const enum GuildScheduledEventPrivacyLevels {
+  GUILD_ONLY = 2,
+}
+
+export const enum GuildScheduledEventStatuses {
+  SCHEDULED = 1,
+  ACTIVE = 2,
+  COMPLETED = 3,
+  CANCELED = 4,
 }
 
 export const enum InteractionResponseTypes {
@@ -185,6 +204,11 @@ export const enum VerificationLevels {
   MEDIUM = 2,
   HIGH = 3,
   VERY_HIGH = 4,
+}
+
+export const enum VideoQualityModes {
+  AUTO = 1,
+  FULL = 2,
 }
 
 export const enum WebhookTypes {

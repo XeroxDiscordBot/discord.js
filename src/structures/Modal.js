@@ -3,6 +3,9 @@
 const BaseMessageComponent = require('./BaseMessageComponent');
 const Util = require('../util/Util');
 
+/**
+ * Represents a modal (form) to be shown in response to an interaction
+ */
 class Modal {
   /**
    * @typedef {Object} ModalOptions

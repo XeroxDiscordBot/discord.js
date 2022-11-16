@@ -1,5 +1,6 @@
 'use strict';
 
+const process = require('node:process');
 const { Collection } = require('@discordjs/collection');
 const AnonymousGuild = require('./AnonymousGuild');
 const GuildAuditLogs = require('./GuildAuditLogs');
@@ -15,6 +16,7 @@ const GuildChannelManager = require('../managers/GuildChannelManager');
 const GuildEmojiManager = require('../managers/GuildEmojiManager');
 const GuildInviteManager = require('../managers/GuildInviteManager');
 const GuildMemberManager = require('../managers/GuildMemberManager');
+const GuildScheduledEventManager = require('../managers/GuildScheduledEventManager');
 const GuildStickerManager = require('../managers/GuildStickerManager');
 const PresenceManager = require('../managers/PresenceManager');
 const RoleManager = require('../managers/RoleManager');
@@ -36,6 +38,14 @@ const Util = require('../util/Util');
 
 let deprecationEmittedForSetChannelPositions = false;
 let deprecationEmittedForSetRolePositions = false;
+let deprecationEmittedForDeleted = false;
+
+/**
+ * @type {WeakSet<Guild>}
+ * @private
+ * @internal
+ */
+const deletedGuilds = new WeakSet();
 
 /**
  * Represents a guild (or a server) on Discord.
@@ -102,10 +112,10 @@ class Guild extends AnonymousGuild {
     this.invites = new GuildInviteManager(this);
 
     /**
-     * Whether the bot has been removed from the guild
-     * @type {boolean}
+     * A manager of the scheduled events of this guild
+     * @type {GuildScheduledEventManager}
      */
-    this.deleted = false;
+    this.scheduledEvents = new GuildScheduledEventManager(this);
 
     if (!data) return;
     if (data.unavailable) {
@@ -124,6 +134,36 @@ class Guild extends AnonymousGuild {
      * @type {number}
      */
     this.shardId = data.shardId;
+  }
+
+  /**
+   * Whether or not the structure has been deleted
+   * @type {boolean}
+   * @deprecated This will be removed in the next major version, see https://github.com/discordjs/discord.js/issues/7091
+   */
+  get deleted() {
+    if (!deprecationEmittedForDeleted) {
+      deprecationEmittedForDeleted = true;
+      process.emitWarning(
+        'Guild#deleted is deprecated, see https://github.com/discordjs/discord.js/issues/7091.',
+        'DeprecationWarning',
+      );
+    }
+
+    return deletedGuilds.has(this);
+  }
+
+  set deleted(value) {
+    if (!deprecationEmittedForDeleted) {
+      deprecationEmittedForDeleted = true;
+      process.emitWarning(
+        'Guild#deleted is deprecated, see https://github.com/discordjs/discord.js/issues/7091.',
+        'DeprecationWarning',
+      );
+    }
+
+    if (value) deletedGuilds.add(this);
+    else deletedGuilds.delete(this);
   }
 
   /**
@@ -323,6 +363,16 @@ class Guild extends AnonymousGuild {
       this.maximumPresences ??= null;
     }
 
+    if ('max_video_channel_users' in data) {
+      /**
+       * The maximum amount of users allowed in a video channel.
+       * @type {?number}
+       */
+      this.maxVideoChannelUsers = data.max_video_channel_users;
+    } else {
+      this.maxVideoChannelUsers ??= null;
+    }
+
     if ('approximate_member_count' in data) {
       /**
        * The approximate amount of members the guild has
@@ -371,8 +421,8 @@ class Guild extends AnonymousGuild {
     if ('preferred_locale' in data) {
       /**
        * The preferred locale of the guild, defaults to `en-US`
-       * @type {string}
-       * @see {@link https://discord.com/developers/docs/dispatch/field-values#predefined-field-values-accepted-locales}
+       * @type {Locale}
+       * @see {@link https://discord.com/developers/docs/reference#locales}
        */
       this.preferredLocale = data.preferred_locale;
     }
@@ -421,6 +471,13 @@ class Guild extends AnonymousGuild {
       }
     }
 
+    if (data.guild_scheduled_events) {
+      this.scheduledEvents.cache.clear();
+      for (const scheduledEvent of data.guild_scheduled_events) {
+        this.scheduledEvents._add(scheduledEvent);
+      }
+    }
+
     if (data.voice_states) {
       this.voiceStates.cache.clear();
       for (const voiceState of data.voice_states) {
@@ -458,30 +515,12 @@ class Guild extends AnonymousGuild {
   }
 
   /**
-   * The URL to this guild's banner.
-   * @param {StaticImageURLOptions} [options={}] Options for the Image URL
-   * @returns {?string}
-   */
-  bannerURL({ format, size } = {}) {
-    return this.banner && this.client.rest.cdn.Banner(this.id, this.banner, format, size);
-  }
-
-  /**
    * The time the client user joined the guild
    * @type {Date}
    * @readonly
    */
   get joinedAt() {
     return new Date(this.joinedTimestamp);
-  }
-
-  /**
-   * The URL to this guild's invite splash image.
-   * @param {StaticImageURLOptions} [options={}] Options for the Image URL
-   * @returns {?string}
-   */
-  splashURL({ format, size } = {}) {
-    return this.splash && this.client.rest.cdn.Splash(this.id, this.splash, format, size);
   }
 
   /**
@@ -771,24 +810,24 @@ class Guild extends AnonymousGuild {
    * The data for editing a guild.
    * @typedef {Object} GuildEditData
    * @property {string} [name] The name of the guild
-   * @property {VerificationLevel|number} [verificationLevel] The verification level of the guild
-   * @property {ExplicitContentFilterLevel|number} [explicitContentFilter] The level of the explicit content filter
-   * @property {VoiceChannelResolvable} [afkChannel] The AFK channel of the guild
-   * @property {TextChannelResolvable} [systemChannel] The system channel of the guild
+   * @property {?(VerificationLevel|number)} [verificationLevel] The verification level of the guild
+   * @property {?(ExplicitContentFilterLevel|number)} [explicitContentFilter] The level of the explicit content filter
+   * @property {?VoiceChannelResolvable} [afkChannel] The AFK channel of the guild
+   * @property {?TextChannelResolvable} [systemChannel] The system channel of the guild
    * @property {number} [afkTimeout] The AFK timeout of the guild
    * @property {?(BufferResolvable|Base64Resolvable)} [icon] The icon of the guild
    * @property {GuildMemberResolvable} [owner] The owner of the guild
    * @property {?(BufferResolvable|Base64Resolvable)} [splash] The invite splash image of the guild
    * @property {?(BufferResolvable|Base64Resolvable)} [discoverySplash] The discovery splash image of the guild
    * @property {?(BufferResolvable|Base64Resolvable)} [banner] The banner of the guild
-   * @property {DefaultMessageNotificationLevel|number} [defaultMessageNotifications] The default message notification
-   * level of the guild
+   * @property {?(DefaultMessageNotificationLevel|number)} [defaultMessageNotifications] The default message
+   * notification level of the guild
    * @property {SystemChannelFlagsResolvable} [systemChannelFlags] The system channel flags of the guild
-   * @property {TextChannelResolvable} [rulesChannel] The rules channel of the guild
-   * @property {TextChannelResolvable} [publicUpdatesChannel] The community updates channel of the guild
-   * @property {string} [preferredLocale] The preferred locale of the guild
+   * @property {?TextChannelResolvable} [rulesChannel] The rules channel of the guild
+   * @property {?TextChannelResolvable} [publicUpdatesChannel] The community updates channel of the guild
+   * @property {?string} [preferredLocale] The preferred locale of the guild
    * @property {boolean} [premiumProgressBarEnabled] Whether the guild's premium progress bar is enabled
-   * @property {string} [description] The discovery description of the guild
+   * @property {?string} [description] The discovery description of the guild
    * @property {Features[]} [features] The features of the guild
    */
 
@@ -869,7 +908,7 @@ class Guild extends AnonymousGuild {
     if (typeof data.description !== 'undefined') {
       _data.description = data.description;
     }
-    if (data.preferredLocale) _data.preferred_locale = data.preferredLocale;
+    if (typeof data.preferredLocale !== 'undefined') _data.preferred_locale = data.preferredLocale;
     if ('premiumProgressBarEnabled' in data) _data.premium_progress_bar_enabled = data.premiumProgressBarEnabled;
     const newData = await this.client.api.guilds(this.id).patch({ data: _data, reason });
     return this.client.actions.GuildUpdate.handle(newData).updated;
@@ -879,7 +918,7 @@ class Guild extends AnonymousGuild {
    * Welcome channel data
    * @typedef {Object} WelcomeChannelData
    * @property {string} description The description to show for this welcome channel
-   * @property {TextChannel|NewsChannel|Snowflake} channel The channel to link for this welcome channel
+   * @property {TextChannel|NewsChannel|StoreChannel|Snowflake} channel The channel to link for this welcome channel
    * @property {EmojiIdentifierResolvable} [emoji] The emoji to display for this welcome channel
    */
 
@@ -947,7 +986,7 @@ class Guild extends AnonymousGuild {
 
   /**
    * Edits the level of the explicit content filter.
-   * @param {ExplicitContentFilterLevel|number} explicitContentFilter The new level of the explicit content filter
+   * @param {?(ExplicitContentFilterLevel|number)} explicitContentFilter The new level of the explicit content filter
    * @param {string} [reason] Reason for changing the level of the guild's explicit content filter
    * @returns {Promise<Guild>}
    */
@@ -958,7 +997,7 @@ class Guild extends AnonymousGuild {
   /* eslint-disable max-len */
   /**
    * Edits the setting of the default message notifications of the guild.
-   * @param {DefaultMessageNotificationLevel|number} defaultMessageNotifications The new default message notification level of the guild
+   * @param {?(DefaultMessageNotificationLevel|number)} defaultMessageNotifications The new default message notification level of the guild
    * @param {string} [reason] Reason for changing the setting of the default message notifications
    * @returns {Promise<Guild>}
    */
@@ -994,7 +1033,7 @@ class Guild extends AnonymousGuild {
 
   /**
    * Edits the verification level of the guild.
-   * @param {VerificationLevel|number} verificationLevel The new verification level of the guild
+   * @param {?(VerificationLevel|number)} verificationLevel The new verification level of the guild
    * @param {string} [reason] Reason for changing the guild's verification level
    * @returns {Promise<Guild>}
    * @example
@@ -1009,7 +1048,7 @@ class Guild extends AnonymousGuild {
 
   /**
    * Edits the AFK channel of the guild.
-   * @param {VoiceChannelResolvable} afkChannel The new AFK channel
+   * @param {?VoiceChannelResolvable} afkChannel The new AFK channel
    * @param {string} [reason] Reason for changing the guild's AFK channel
    * @returns {Promise<Guild>}
    * @example
@@ -1024,7 +1063,7 @@ class Guild extends AnonymousGuild {
 
   /**
    * Edits the system channel of the guild.
-   * @param {TextChannelResolvable} systemChannel The new system channel
+   * @param {?TextChannelResolvable} systemChannel The new system channel
    * @param {string} [reason] Reason for changing the guild's system channel
    * @returns {Promise<Guild>}
    * @example
@@ -1129,7 +1168,7 @@ class Guild extends AnonymousGuild {
 
   /**
    * Edits the rules channel of the guild.
-   * @param {TextChannelResolvable} rulesChannel The new rules channel
+   * @param {?TextChannelResolvable} rulesChannel The new rules channel
    * @param {string} [reason] Reason for changing the guild's rules channel
    * @returns {Promise<Guild>}
    * @example
@@ -1144,7 +1183,7 @@ class Guild extends AnonymousGuild {
 
   /**
    * Edits the community updates channel of the guild.
-   * @param {TextChannelResolvable} publicUpdatesChannel The new community updates channel
+   * @param {?TextChannelResolvable} publicUpdatesChannel The new community updates channel
    * @param {string} [reason] Reason for changing the guild's community updates channel
    * @returns {Promise<Guild>}
    * @example
@@ -1159,7 +1198,7 @@ class Guild extends AnonymousGuild {
 
   /**
    * Edits the preferred locale of the guild.
-   * @param {string} preferredLocale The new preferred locale of the guild
+   * @param {?string} preferredLocale The new preferred locale of the guild
    * @param {string} [reason] Reason for changing the guild's preferred locale
    * @returns {Promise<Guild>}
    * @example
@@ -1382,8 +1421,8 @@ class Guild extends AnonymousGuild {
     return Util.discordSort(
       this.channels.cache.filter(
         c =>
-          (['GUILD_TEXT', 'GUILD_NEWS'].includes(channel.type)
-            ? ['GUILD_TEXT', 'GUILD_NEWS'].includes(c.type)
+          (['GUILD_TEXT', 'GUILD_NEWS', 'GUILD_STORE'].includes(channel.type)
+            ? ['GUILD_TEXT', 'GUILD_NEWS', 'GUILD_STORE'].includes(c.type)
             : c.type === channel.type) &&
           (category || c.parent === channel.parent),
       ),
@@ -1391,7 +1430,8 @@ class Guild extends AnonymousGuild {
   }
 }
 
-module.exports = Guild;
+exports.Guild = Guild;
+exports.deletedGuilds = deletedGuilds;
 
 /**
  * @external APIGuild

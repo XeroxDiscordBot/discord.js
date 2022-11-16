@@ -75,11 +75,13 @@ import {
   RESTPostAPIInteractionFollowupJSONBody,
   RESTPostAPIWebhookWithTokenJSONBody,
   Snowflake,
+  APIGuildScheduledEvent,
+  APIActionRowComponent,
   APITextInputComponent,
   APIModalActionRowComponent,
   APIModalSubmitInteraction,
 } from 'discord-api-types/v9';
-import { Guild, GuildChannel, PermissionOverwrites } from '.';
+import { GuildChannel, Guild, PermissionOverwrites, InteractionType } from '.';
 import type { InteractionTypes, MessageComponentTypes } from './enums';
 
 export type RawActivityData = GatewayActivity;
@@ -131,6 +133,8 @@ export type RawGuildMemberData =
 export type RawThreadMemberData = APIThreadMember;
 
 export type RawGuildPreviewData = APIGuildPreview;
+
+export type RawGuildScheduledEventData = APIGuildScheduledEvent;
 
 export type RawGuildTemplateData = APITemplate;
 

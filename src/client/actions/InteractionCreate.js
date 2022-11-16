@@ -1,8 +1,15 @@
 'use strict';
 
+const process = require('node:process');
 const Action = require('./Action');
+const AutocompleteInteraction = require('../../structures/AutocompleteInteraction');
+const ButtonInteraction = require('../../structures/ButtonInteraction');
+const CommandInteraction = require('../../structures/CommandInteraction');
+const MessageContextMenuInteraction = require('../../structures/MessageContextMenuInteraction');
+const ModalSubmitInteraction = require('../../structures/ModalSubmitInteraction');
+const SelectMenuInteraction = require('../../structures/SelectMenuInteraction');
+const UserContextMenuInteraction = require('../../structures/UserContextMenuInteraction');
 const { Events, InteractionTypes, MessageComponentTypes, ApplicationCommandTypes } = require('../../util/Constants');
-const Structures = require('../../util/Structures');
 
 let deprecationEmitted = false;
 
@@ -11,20 +18,23 @@ class InteractionCreateAction extends Action {
     const client = this.client;
 
     // Resolve and cache partial channels for Interaction#channel getter
-    this.getChannel(data);
+    const channel = this.getChannel(data);
 
+    // Do not emit this for interactions that cache messages that are non-text-based.
     let InteractionType;
+
     switch (data.type) {
       case InteractionTypes.APPLICATION_COMMAND:
         switch (data.data.type) {
           case ApplicationCommandTypes.CHAT_INPUT:
-            InteractionType = Structures.get('CommandInteraction');
+            InteractionType = CommandInteraction;
             break;
           case ApplicationCommandTypes.USER:
-            InteractionType = Structures.get('UserContextMenuInteraction');
+            InteractionType = UserContextMenuInteraction;
             break;
           case ApplicationCommandTypes.MESSAGE:
-            InteractionType = Structures.get('MessageContextMenuInteraction');
+            if (channel && !channel.isText()) return;
+            InteractionType = MessageContextMenuInteraction;
             break;
           default:
             client.emit(
@@ -35,12 +45,14 @@ class InteractionCreateAction extends Action {
         }
         break;
       case InteractionTypes.MESSAGE_COMPONENT:
+        if (channel && !channel.isText()) return;
+
         switch (data.data.component_type) {
           case MessageComponentTypes.BUTTON:
-            InteractionType = Structures.get('ButtonInteraction');
+            InteractionType = ButtonInteraction;
             break;
           case MessageComponentTypes.SELECT_MENU:
-            InteractionType = Structures.get('SelectMenuInteraction');
+            InteractionType = SelectMenuInteraction;
             break;
           default:
             client.emit(
@@ -51,10 +63,10 @@ class InteractionCreateAction extends Action {
         }
         break;
       case InteractionTypes.APPLICATION_COMMAND_AUTOCOMPLETE:
-        InteractionType = Structures.get('AutocompleteInteraction');
+        InteractionType = AutocompleteInteraction;
         break;
       case InteractionTypes.MODAL_SUBMIT:
-        InteractionType = Structures.get('ModalSubmitInteraction');
+        InteractionType = ModalSubmitInteraction;
         break;
       default:
         client.emit(Events.DEBUG, `[INTERACTION] Received interaction with unknown type: ${data.type}`);

@@ -1,5 +1,6 @@
 'use strict';
 
+const process = require('node:process');
 const { Collection } = require('@discordjs/collection');
 const Base = require('./Base');
 const BaseMessageComponent = require('./BaseMessageComponent');
@@ -10,7 +11,7 @@ const Embed = require('./MessageEmbed');
 const Mentions = require('./MessageMentions');
 const MessagePayload = require('./MessagePayload');
 const ReactionCollector = require('./ReactionCollector');
-const Sticker = require('./Sticker');
+const { Sticker } = require('./Sticker');
 const { Error } = require('../errors');
 const ReactionManager = require('../managers/ReactionManager');
 const { InteractionTypes, MessageTypes, SystemMessageTypes } = require('../util/Constants');
@@ -18,6 +19,14 @@ const MessageFlags = require('../util/MessageFlags');
 const Permissions = require('../util/Permissions');
 const SnowflakeUtil = require('../util/SnowflakeUtil');
 const Util = require('../util/Util');
+
+/**
+ * @type {WeakSet<Message>}
+ * @private
+ * @internal
+ */
+const deletedMessages = new WeakSet();
+let deprecationEmittedForDeleted = false;
 
 /**
  * Represents a message on Discord.
@@ -39,12 +48,6 @@ class Message extends Base {
      */
     this.guildId = data.guild_id ?? this.channel?.guild?.id ?? null;
 
-    /**
-     * Whether this message has been deleted
-     * @type {boolean}
-     */
-    this.deleted = false;
-
     this._patch(data);
   }
 
@@ -59,7 +62,7 @@ class Message extends Base {
      * The timestamp the message was sent at
      * @type {number}
      */
-    this.createdTimestamp = SnowflakeUtil.deconstruct(this.id).timestamp;
+    this.createdTimestamp = SnowflakeUtil.timestampFrom(this.id);
 
     if ('type' in data) {
       /**
@@ -328,7 +331,8 @@ class Message extends Base {
      * @typedef {Object} MessageInteraction
      * @property {Snowflake} id The interaction's id
      * @property {InteractionType} type The type of the interaction
-     * @property {string} commandName The name of the interaction's application command
+     * @property {string} commandName The name of the interaction's application command,
+     * as well as the subcommand and subcommand group, where applicable
      * @property {User} user The user that invoked the interaction
      */
 
@@ -349,8 +353,38 @@ class Message extends Base {
   }
 
   /**
+   * Whether or not the structure has been deleted
+   * @type {boolean}
+   * @deprecated This will be removed in the next major version, see https://github.com/discordjs/discord.js/issues/7091
+   */
+  get deleted() {
+    if (!deprecationEmittedForDeleted) {
+      deprecationEmittedForDeleted = true;
+      process.emitWarning(
+        'Message#deleted is deprecated, see https://github.com/discordjs/discord.js/issues/7091.',
+        'DeprecationWarning',
+      );
+    }
+
+    return deletedMessages.has(this);
+  }
+
+  set deleted(value) {
+    if (!deprecationEmittedForDeleted) {
+      deprecationEmittedForDeleted = true;
+      process.emitWarning(
+        'Message#deleted is deprecated, see https://github.com/discordjs/discord.js/issues/7091.',
+        'DeprecationWarning',
+      );
+    }
+
+    if (value) deletedMessages.add(this);
+    else deletedMessages.delete(this);
+  }
+
+  /**
    * The channel that the message was sent in
-   * @type {TextChannel|DMChannel|NewsChannel|ThreadChannel}
+   * @type {TextBasedChannels}
    * @readonly
    */
   get channel() {
@@ -552,7 +586,7 @@ class Message extends Base {
    */
   get editable() {
     const precheck = Boolean(
-      this.author.id === this.client.user.id && !this.deleted && (!this.guild || this.channel?.viewable),
+      this.author.id === this.client.user.id && !deletedMessages.has(this) && (!this.guild || this.channel?.viewable),
     );
     // Regardless of permissions thread messages cannot be edited if
     // the thread is locked.
@@ -568,7 +602,7 @@ class Message extends Base {
    * @readonly
    */
   get deletable() {
-    if (this.deleted) {
+    if (deletedMessages.has(this)) {
       return false;
     }
     if (!this.guild) {
@@ -578,9 +612,16 @@ class Message extends Base {
     if (!this.channel?.viewable) {
       return false;
     }
+
+    const permissions = this.channel?.permissionsFor(this.client.user);
+    if (!permissions) return false;
+    // This flag allows deleting even if timed out
+    if (permissions.has(Permissions.FLAGS.ADMINISTRATOR, false)) return true;
+
     return Boolean(
       this.author.id === this.client.user.id ||
-        this.channel?.permissionsFor(this.client.user)?.has(Permissions.FLAGS.MANAGE_MESSAGES, false),
+        (permissions.has(Permissions.FLAGS.MANAGE_MESSAGES, false) &&
+          this.guild.me.communicationDisabledUntilTimestamp < Date.now()),
     );
   }
 
@@ -593,7 +634,7 @@ class Message extends Base {
     const { channel } = this;
     return Boolean(
       !this.system &&
-        !this.deleted &&
+        !deletedMessages.has(this) &&
         (!this.guild ||
           (channel?.viewable &&
             channel?.permissionsFor(this.client.user)?.has(Permissions.FLAGS.MANAGE_MESSAGES, false))),
@@ -629,7 +670,7 @@ class Message extends Base {
         this.type === 'DEFAULT' &&
         channel.viewable &&
         channel.permissionsFor(this.client.user)?.has(bitfield, false) &&
-        !this.deleted,
+        !deletedMessages.has(this),
     );
   }
 
@@ -680,6 +721,7 @@ class Message extends Base {
 
   /**
    * Pins this message to the channel's pinned messages.
+   * @param {string} [reason] Reason for pinning
    * @returns {Promise<Message>}
    * @example
    * // Pin a message
@@ -687,14 +729,15 @@ class Message extends Base {
    *   .then(console.log)
    *   .catch(console.error)
    */
-  async pin() {
+  async pin(reason) {
     if (!this.channel) throw new Error('CHANNEL_NOT_CACHED');
-    await this.channel.messages.pin(this.id);
+    await this.channel.messages.pin(this.id, reason);
     return this;
   }
 
   /**
    * Unpins this message from the channel's pinned messages.
+   * @param {string} [reason] Reason for unpinning
    * @returns {Promise<Message>}
    * @example
    * // Unpin a message
@@ -702,9 +745,9 @@ class Message extends Base {
    *   .then(console.log)
    *   .catch(console.error)
    */
-  async unpin() {
+  async unpin(reason) {
     if (!this.channel) throw new Error('CHANNEL_NOT_CACHED');
-    await this.channel.messages.unpin(this.id);
+    await this.channel.messages.unpin(this.id, reason);
     return this;
   }
 
@@ -942,4 +985,5 @@ class Message extends Base {
   }
 }
 
-module.exports = Message;
+exports.Message = Message;
+exports.deletedMessages = deletedMessages;

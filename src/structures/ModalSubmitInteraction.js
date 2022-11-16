@@ -6,6 +6,11 @@ const ModalSubmitFieldsResolver = require('./ModalSubmitFieldsResolver');
 const InteractionResponses = require('./interfaces/InteractionResponses');
 const { MessageComponentTypes } = require('../util/Constants');
 
+/**
+ * Represents a modal submit interaction.
+ * @extends {Interaction}
+ * @implements {InteractionResponses}
+ */
 class ModalSubmitInteraction extends Interaction {
   constructor(client, data) {
     super(client, data);
@@ -89,6 +94,14 @@ class ModalSubmitInteraction extends Interaction {
     }));
   }
 
+  /**
+   * Whether this is from a {@link MessageComponentInteraction}.
+   * @returns {boolean}
+   */
+  isFromMessage() {
+    return Boolean(this.message);
+  }
+
   // These are here only for documentation purposes - they are implemented by InteractionResponses
   /* eslint-disable no-empty-function */
   deferReply() {}
@@ -101,6 +114,6 @@ class ModalSubmitInteraction extends Interaction {
   deferUpdate() {}
 }
 
-InteractionResponses.applyToClass(ModalSubmitInteraction, ['showModal']);
+InteractionResponses.applyToClass(ModalSubmitInteraction, ['showModal', 'awaitModalSubmit']);
 
 module.exports = ModalSubmitInteraction;

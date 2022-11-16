@@ -3,7 +3,7 @@
 const { Collection } = require('@discordjs/collection');
 const CachedManager = require('./CachedManager');
 const { TypeError } = require('../errors');
-const Message = require('../structures/Message');
+const { Message } = require('../structures/Message');
 const MessagePayload = require('../structures/MessagePayload');
 const Util = require('../util/Util');
 
@@ -156,25 +156,27 @@ class MessageManager extends CachedManager {
   /**
    * Pins a message to the channel's pinned messages, even if it's not cached.
    * @param {MessageResolvable} message The message to pin
+   * @param {string} [reason] Reason for pinning
    * @returns {Promise<void>}
    */
-  async pin(message) {
+  async pin(message, reason) {
     message = this.resolveId(message);
     if (!message) throw new TypeError('INVALID_TYPE', 'message', 'MessageResolvable');
 
-    await this.client.api.channels(this.channel.id).pins(message).put();
+    await this.client.api.channels(this.channel.id).pins(message).put({ reason });
   }
 
   /**
    * Unpins a message from the channel's pinned messages, even if it's not cached.
    * @param {MessageResolvable} message The message to unpin
+   * @param {string} [reason] Reason for unpinning
    * @returns {Promise<void>}
    */
-  async unpin(message) {
+  async unpin(message, reason) {
     message = this.resolveId(message);
     if (!message) throw new TypeError('INVALID_TYPE', 'message', 'MessageResolvable');
 
-    await this.client.api.channels(this.channel.id).pins(message).delete();
+    await this.client.api.channels(this.channel.id).pins(message).delete({ reason });
   }
 
   /**
