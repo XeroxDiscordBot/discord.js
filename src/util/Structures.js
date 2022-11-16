@@ -110,15 +110,15 @@ const structures = {
   DirectoryChannel: require('../structures/DirectoryChannel'),
   StoreChannel: require('../structures/StoreChannel'),
   ForumChannel: require('../structures/ForumChannel'),
-  GuildMember: require('../structures/GuildMember'),
+  GuildMember: require('../structures/GuildMember').GuildMember,
   ThreadMember: require('../structures/ThreadMember'),
-  Guild: require('../structures/Guild'),
-  Message: require('../structures/Message'),
+  Guild: require('../structures/Guild').Guild,
+  Message: require('../structures/Message').Message,
   MessageReaction: require('../structures/MessageReaction'),
   Presence: require('../structures/Presence').Presence,
   ClientPresence: require('../structures/ClientPresence'),
   VoiceState: require('../structures/VoiceState'),
-  Role: require('../structures/Role'),
+  Role: require('../structures/Role').Role,
   User: require('../structures/User'),
   BaseCommandInteraction: require('../structures/BaseCommandInteraction'),
   CommandInteraction: require('../structures/CommandInteraction'),
@@ -130,7 +130,7 @@ const structures = {
   AutocompleteInteraction: require('../structures/AutocompleteInteraction'),
   MessageComponentInteraction: require('../structures/MessageComponentInteraction'),
   ModalSubmitInteraction: require('../structures/ModalSubmitInteraction'),
-  StageInstance: require('../structures/StageInstance'),
+  StageInstance: require('../structures/StageInstance').StageInstance,
 };
 
 module.exports = Structures;
