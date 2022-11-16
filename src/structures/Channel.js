@@ -4,7 +4,6 @@ const process = require('node:process');
 const Base = require('./Base');
 const { ChannelTypes, ThreadChannelTypes, VoiceBasedChannelTypes } = require('../util/Constants');
 const SnowflakeUtil = require('../util/SnowflakeUtil');
-const { Structures } = require('../util/Structures');
 
 /**
  * @type {WeakSet<Channel>}
@@ -166,6 +165,7 @@ class Channel extends Base {
   }
 
   static create(client, data, guild, { allowUnknownGuild, fromInteraction } = {}) {
+    const Structures = require('../util/Structures');
     let channel;
     if (!data.guild_id && !guild) {
       if ((data.recipients && data.type !== ChannelTypes.GROUP_DM) || data.type === ChannelTypes.DM) {
