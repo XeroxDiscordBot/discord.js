@@ -1990,6 +1990,59 @@ export class PartialGroupDMChannel extends Channel {
   public iconURL(options?: StaticImageURLOptions): string | null;
 }
 
+export interface GuildForumTagEmoji {
+  id: Snowflake | null;
+  name: string | null;
+}
+
+export interface GuildForumTag {
+  id: Snowflake;
+  name: string;
+  moderated: boolean;
+  emoji: GuildForumTagEmoji | null;
+}
+
+export type GuildForumTagData = Partial<GuildForumTag> & { name: string };
+
+export interface DefaultReactionEmoji {
+  id: Snowflake | null;
+  name: string | null;
+}
+
+export class ForumChannel extends TextBasedChannelMixin(GuildChannel, [
+  'send',
+  'lastMessage',
+  'lastPinAt',
+  'bulkDelete',
+  'sendTyping',
+  'createMessageCollector',
+  'awaitMessages',
+  'createMessageComponentCollector',
+  'awaitMessageComponent',
+]) {
+  // @ts-ignore
+  public type: ChannelTypes.GUILD_FORUM;
+  public threads: GuildForumThreadManager;
+  public availableTags: GuildForumTag[];
+  public defaultReactionEmoji: DefaultReactionEmoji | null;
+  public defaultThreadRateLimitPerUser: number | null;
+  public rateLimitPerUser: number | null;
+  public defaultAutoArchiveDuration: ThreadAutoArchiveDuration | null;
+  public nsfw: boolean;
+  public topic: string | null;
+
+  public setAvailableTags(tags: GuildForumTagData[], reason?: string): Promise<this>;
+  public setDefaultReactionEmoji(emojiId: DefaultReactionEmoji | null, reason?: string): Promise<this>;
+  public setDefaultThreadRateLimitPerUser(rateLimit: number, reason?: string): Promise<this>;
+  public createInvite(options?: CreateInviteOptions): Promise<Invite>;
+  public fetchInvites(cache?: boolean): Promise<Collection<string, Invite>>;
+  public setDefaultAutoArchiveDuration(
+    defaultAutoArchiveDuration: ThreadAutoArchiveDuration,
+    reason?: string,
+  ): Promise<this>;
+  public setTopic(topic: string | null, reason?: string): Promise<this>;
+}
+
 export class PermissionOverwrites extends Base {
   public constructor(client: Client, data: RawPermissionOverwriteData, channel: NonThreadGuildBasedChannel);
   public allow: Readonly<Permissions>;
@@ -2347,6 +2400,20 @@ export class StoreChannel extends GuildChannel {
   public clone(options?: GuildChannelCloneOptions): Promise<this>;
   public nsfw: boolean;
   public type: 'GUILD_STORE';
+}
+
+export class Structures extends null {
+  public constructor();
+  public static get<K extends keyof Extendable>(structure: K): Extendable[K];
+  public static get(structure: string): (...args: any[]) => void;
+  public static extend<K extends keyof Extendable, T extends Extendable[K]>(
+    structure: K,
+    extender: (baseClass: Extendable[K]) => T,
+  ): T;
+  public static extend<T extends (...args: any[]) => void>(
+    structure: string,
+    extender: (baseClass: typeof Function) => T,
+  ): T;
 }
 
 export class Sweepers {
@@ -3485,6 +3552,10 @@ export class ThreadManager<AllowedThreadType> extends CachedManager<Snowflake, T
   public fetch(options?: FetchThreadsOptions, cacheOptions?: { cache?: boolean }): Promise<FetchedThreads>;
   public fetchArchived(options?: FetchArchivedThreadOptions, cache?: boolean): Promise<FetchedThreads>;
   public fetchActive(cache?: boolean): Promise<FetchedThreads>;
+}
+
+export class GuildForumThreadManager extends ThreadManager<true> {
+  public create(options: GuildForumThreadCreateOptions): Promise<ThreadChannel>;
 }
 
 export class ThreadMemberManager extends CachedManager<Snowflake, ThreadMember, ThreadMemberResolvable> {
@@ -4666,6 +4737,37 @@ export interface EscapeMarkdownOptions {
 
 export type ExplicitContentFilterLevel = keyof typeof ExplicitContentFilterLevels;
 
+interface Extendable {
+  GuildEmoji: typeof GuildEmoji;
+  DMChannel: typeof DMChannel;
+  TextChannel: typeof TextChannel;
+  VoiceChannel: typeof VoiceChannel;
+  CategoryChannel: typeof CategoryChannel;
+  NewsChannel: typeof NewsChannel;
+  ThreadChannel: typeof ThreadChannel;
+  DirectoryChannel: typeof DirectoryChannel;
+  StoreChannel: typeof StoreChannel;
+  ForumChannel: typeof ForumChannel;
+  GuildMember: typeof GuildMember;
+  ThreadMember: typeof ThreadMember;
+  Guild: typeof Guild;
+  Message: typeof Message;
+  MessageReaction: typeof MessageReaction;
+  Presence: typeof Presence;
+  VoiceState: typeof VoiceState;
+  Role: typeof Role;
+  User: typeof User;
+  BaseCommandInteraction: typeof BaseCommandInteraction;
+  CommandInteraction: typeof CommandInteraction;
+  ButtonInteraction: typeof ButtonInteraction;
+  SelectMenuInteraction: typeof SelectMenuInteraction;
+  ContextMenuInteraction: typeof ContextMenuInteraction;
+  AutocompleteInteraction: typeof AutocompleteInteraction;
+  MessageComponentInteraction: typeof MessageComponentInteraction;
+  ModalSubmitInteraction: typeof ModalSubmitInteraction;
+  StageInstance: typeof StageInstance;
+}
+
 export interface FetchApplicationCommandOptions extends BaseFetchOptions {
   guildId?: Snowflake;
   locale?: LocaleString;
@@ -5372,6 +5474,8 @@ export type MessageComponentType = keyof typeof MessageComponentTypes;
 
 export type MessageComponentTypeResolvable = MessageComponentType | MessageComponentTypes;
 
+export type GuildForumThreadMessageCreateOptions = MessageOptions;
+
 export interface MessageEditOptions {
   attachments?: MessageAttachment[];
   content?: string | null;
@@ -5983,6 +6087,11 @@ export interface ThreadCreateOptions<AllowedThreadType> extends StartThreadOptio
   type?: AllowedThreadType;
   invitable?: AllowedThreadType extends 'GUILD_PRIVATE_THREAD' | 12 ? boolean : never;
   rateLimitPerUser?: number;
+}
+
+export interface GuildForumThreadCreateOptions extends StartThreadOptions {
+  message: GuildForumThreadMessageCreateOptions | MessagePayload;
+  appliedTags?: Snowflake[];
 }
 
 export interface ThreadEditData {
