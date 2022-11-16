@@ -2021,8 +2021,7 @@ export class ForumChannel extends TextBasedChannelMixin(GuildChannel, [
   'awaitMessageComponent',
   'messages',
 ]) {
-  // @ts-ignore
-  public type: ChannelTypes.GUILD_FORUM;
+  public type: 'GUILD_FORUM';
   public threads: GuildForumThreadManager;
   public availableTags: GuildForumTag[];
   public defaultReactionEmoji: DefaultReactionEmoji | null;
