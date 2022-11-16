@@ -136,6 +136,7 @@ exports.Role = require('./structures/Role').Role;
 exports.SelectMenuInteraction = require('./structures/SelectMenuInteraction');
 exports.StageChannel = require('./structures/StageChannel');
 exports.StageInstance = require('./structures/StageInstance').StageInstance;
+exports.Structures = require('./util/Structures');
 exports.Sticker = require('./structures/Sticker').Sticker;
 exports.StickerPack = require('./structures/StickerPack');
 exports.StoreChannel = require('./structures/StoreChannel');
