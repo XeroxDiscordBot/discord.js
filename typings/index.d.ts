@@ -4160,6 +4160,7 @@ export interface Caches {
   StageInstanceManager: [manager: typeof StageInstanceManager, holds: typeof StageInstance];
   ThreadManager: [manager: typeof ThreadManager, holds: typeof ThreadChannel];
   ThreadMemberManager: [manager: typeof ThreadMemberManager, holds: typeof ThreadMember];
+  GuildForumThreadManager: [manager: typeof GuildForumThreadManager, holds: typeof ThreadChannel];
   UserManager: [manager: typeof UserManager, holds: typeof User];
   VoiceStateManager: [manager: typeof VoiceStateManager, holds: typeof VoiceState];
 }
