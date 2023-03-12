@@ -11,6 +11,9 @@
  * * **`NewsChannel`**
  * * **`StageChannel`**
  * * **`ThreadChannel`**
+ * * **`StoreChannel`**
+ * * **`DirectoryChannel`**
+ * * **`ForumChannel`**
  * * **`GuildMember`**
  * * **`ThreadMember`**
  * * **`Guild`**

@@ -2,6 +2,7 @@
 
 const process = require('node:process');
 const Base = require('./Base');
+const ChannelFlags = require('../util/ChannelFlags');
 const { ChannelTypes, ThreadChannelTypes, VoiceBasedChannelTypes } = require('../util/Constants');
 const SnowflakeUtil = require('../util/SnowflakeUtil');
 
@@ -38,6 +39,17 @@ class Channel extends Base {
      * @type {Snowflake}
      */
     this.id = data.id;
+
+    if ('flags' in data) {
+      /**
+       * The flags that are applied to the channel.
+       * <info>This is only `null` in a {@link PartialGroupDMChannel}. In all other cases, it is not `null`.</info>
+       * @type {?Readonly<ChannelFlags>}
+       */
+      this.flags = new ChannelFlags(data.flags).freeze();
+    } else {
+      this.flags ??= new ChannelFlags().freeze();
+    }
   }
 
   /**
