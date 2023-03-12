@@ -6040,7 +6040,7 @@ export type AnyChannel =
   | VoiceChannel
   | ForumChannel;
 
-export type TextBasedChannel = Extract<AnyChannel, { messages: MessageManager }>;
+export type TextBasedChannel = Exclude<Extract<AnyChannel, { messages: MessageManager }>, ForumChannel>;
 
 export type TextBasedChannelTypes = TextBasedChannel['type'];
 
