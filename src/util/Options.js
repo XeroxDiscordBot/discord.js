@@ -266,19 +266,15 @@ class Options extends null {
       MessageManager: 200,
       ChannelManager: {
         sweepInterval: 3600,
-        sweepFilter: require('./Sweepers').archivedThreadSweepFilter(),
+        sweepFilter: require('./Util').archivedThreadSweepFilter(),
       },
       GuildChannelManager: {
         sweepInterval: 3600,
-        sweepFilter: require('./Sweepers').archivedThreadSweepFilter(),
+        sweepFilter: require('./Util').archivedThreadSweepFilter(),
       },
       ThreadManager: {
         sweepInterval: 3600,
-        sweepFilter: require('./Sweepers').archivedThreadSweepFilter(),
-      },
-      GuildForumThreadManager: {
-        sweepInterval: 3600,
-        sweepFilter: require('./Sweepers').archivedThreadSweepFilter(),
+        sweepFilter: require('./Util').archivedThreadSweepFilter(),
       },
     };
   }

@@ -1,9 +1,9 @@
 'use strict';
 
-const { Routes } = require('discord-api-types/v10');
 const ThreadManager = require('./ThreadManager');
-const { DiscordjsTypeError, ErrorCodes } = require('../errors');
+const { TypeError } = require('../errors');
 const MessagePayload = require('../structures/MessagePayload');
+const { resolveAutoArchiveMaxLimit } = require('../util/Util');
 
 /**
  * Manages API methods for threads in forum channels and stores their cache.
@@ -18,8 +18,9 @@ class GuildForumThreadManager extends ThreadManager {
 
   /**
    * @typedef {BaseMessageOptions} GuildForumThreadMessageCreateOptions
-   * @property {stickers} [stickers] The stickers to send with the message
-   * @property {BitFieldResolvable} [flags] The flags to send with the message
+   * @property {StickerResolvable} [stickers] The stickers to send with the message
+   * @property {BitFieldResolvable} [flags] The flags to send with the message.
+   * Only `SUPPRESS_EMBEDS` and `SUPPRESS_NOTIFICATIONS` can be set.
    */
 
   /**
@@ -38,7 +39,7 @@ class GuildForumThreadManager extends ThreadManager {
    * forum.threads
    *   .create({
    *     name: 'Food Talk',
-   *     autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
+   *     autoArchiveDuration: 60,
    *     message: {
    *      content: 'Discuss your favorite food!',
    *     },
@@ -56,15 +57,23 @@ class GuildForumThreadManager extends ThreadManager {
     appliedTags,
   } = {}) {
     if (!message) {
-      throw new DiscordjsTypeError(ErrorCodes.GuildForumMessageRequired);
+      throw new TypeError('GUILD_FORUM_MESSAGE_REQUIRED');
     }
 
-    const { body, files } = await (message instanceof MessagePayload ? message : MessagePayload.create(this, message))
-      .resolveBody()
-      .resolveFiles();
+    let messagePayload;
 
-    const data = await this.client.rest.post(Routes.threads(this.channel.id), {
-      body: {
+    if (message instanceof MessagePayload) {
+      messagePayload = message.resolveData();
+    } else {
+      messagePayload = MessagePayload.create(this, message).resolveData();
+    }
+
+    const { data: body, files } = await messagePayload.resolveFiles();
+
+    if (autoArchiveDuration === 'MAX') autoArchiveDuration = resolveAutoArchiveMaxLimit(this.channel.guild);
+
+    const data = await this.client.api.channels(this.channel.id).threads.post({
+      data: {
         name,
         auto_archive_duration: autoArchiveDuration,
         rate_limit_per_user: rateLimitPerUser,
